@@ -362,3 +362,20 @@ df_data_w_genres.head()
 artistas_genero = df_data_w_genres.loc[df_data_w_genres['artists'].isin(lista_artistas)]
 artistas_genero = artistas_genero[['genres', 'artists']]
 display(artistas_genero)
+
+# COMMAND ----------
+
+# DBTITLE 1,Quais são os 10 principais gêneros musicais?
+df_data_w_genres['qtd'] = 1  # Cria uma coluna de quantidade de 1 para cada linha
+df_data_w_genres_2 = df_data_w_genres[['genres', 'qtd']]  # Seleciona apenas as colunas de gênero e quantidade
+df_data_w_genres_2_ordenado = df_data_w_genres_2.groupby('genres').sum().sort_values(by='qtd', ascending=False).reset_index() # Agrupa os dados por gênero e soma a quantidade de músicas de cada gênero, em seguida ordena os resultados em ordem decrescente
+top_generos = df_data_w_genres_2_ordenado.loc[0:10] # Seleciona os 10 gêneros mais populares
+
+plot_title = 'Top 10 Gêneros'
+top_generos.plot.bar(x='qtd', y='genres', title=plot_title) # Plota um gráfico de barras para os top 10 gêneros
+
+top_generos_2 =df_data_w_genres_2_ordenado.loc[1:11] # Seleciona os gêneros do 2º ao 11º mais populares
+
+plot_title = 'Top 10 Gêneros'
+top_generos_2.plot.bar(x='qtd', y='genres', title=plot_title) # Plota um gráfico de barras para os gêneros do 2º ao 11º mais populares
+
