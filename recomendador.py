@@ -214,3 +214,29 @@ projection_kmeans = modelo_kmeans.transform(projection)
 # COMMAND ----------
 
 projection_kmeans.select(['pca_features','cluster_pca']).show()
+
+# COMMAND ----------
+
+from pyspark.ml.functions import vector_to_array
+
+# COMMAND ----------
+
+projection_kmeans = projection_kmeans.withColumn('x', vector_to_array('pca_features')[0])\
+                                   .withColumn('y', vector_to_array('pca_features')[1])
+
+# COMMAND ----------
+
+projection_kmeans.select(['x', 'y', 'cluster_pca', 'artists_song']).show()
+
+# COMMAND ----------
+
+import plotly.express as px
+
+# COMMAND ----------
+
+fig = px.scatter(projection_kmeans.toPandas(), x='x', y='y', color='cluster_pca', hover_data=['artists_song'])
+fig.show()
+
+# COMMAND ----------
+
+
