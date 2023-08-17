@@ -158,3 +158,59 @@ dados_musicas_pca_final = model_pca.transform(dados_musicas_scaler)
 # COMMAND ----------
 
 dados_musicas_pca_final.select('pca_features').show(truncate=False, n=5)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # PCA
+# MAGIC * PCA (Principal Component Analysis) é uma técnica estatística utilizada para redução de dimensionalidade e análise de dados. É uma das técnicas mais comuns de análise multivariada e é amplamente utilizada em várias áreas, como ciência de dados, aprendizado de máquina e reconhecimento de padrões.
+# MAGIC * O objetivo principal do PCA é transformar um conjunto de variáveis correlacionadas em um novo conjunto de variáveis não correlacionadas, chamadas de componentes principais. Esses componentes principais são combinações lineares das variáveis originais e são ordenados de forma que o primeiro componente principal explique a maior parte da variabilidade dos dados, o segundo componente principal explique a maior parte da variabilidade restante, e assim por diante.
+# MAGIC * A redução de dimensionalidade ocorre ao descartar os componentes principais de menor importância, o que permite representar os dados originais em um espaço de menor dimensão. Isso pode ser útil quando há um grande número de variáveis e se deseja simplificar a análise ou visualização dos dados.
+# MAGIC * Também pode ser usado para identificar padrões e tendências nos dados, detectar outliers e ruídos, e realizar tarefas como compressão de dados e reconstrução de dados faltantes.
+# MAGIC
+
+# COMMAND ----------
+
+from pyspark.ml import Pipeline
+
+# COMMAND ----------
+
+pca_pipeline = Pipeline(stages=[VectorAssembler(inputCols=X, outputCol='features'),
+                                StandardScaler(inputCol='features', outputCol='features_scaled'),
+                                PCA(k=6, inputCol='features_scaled', outputCol='pca_features')])
+
+# COMMAND ----------
+
+model_pca_pipeline = pca_pipeline.fit(df_data)
+
+# COMMAND ----------
+
+projection = model_pca_pipeline.transform(df_data)
+
+# COMMAND ----------
+
+projection.select('pca_features').show(truncate=False, n=5)
+
+# COMMAND ----------
+
+from pyspark.ml.clustering import KMeans
+
+# COMMAND ----------
+
+SEED = 1224
+
+# COMMAND ----------
+
+kmeans = KMeans(k=50, featuresCol='pca_features', predictionCol='cluster_pca', seed=SEED)
+
+# COMMAND ----------
+
+modelo_kmeans = kmeans.fit(projection)
+
+# COMMAND ----------
+
+projection_kmeans = modelo_kmeans.transform(projection) 
+
+# COMMAND ----------
+
+projection_kmeans.select(['pca_features','cluster_pca']).show()
