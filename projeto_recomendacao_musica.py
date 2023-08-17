@@ -193,6 +193,7 @@ path_data_year = '/FileStore/dados_tratados/df_data_year.parquet'
 df_year = ps.read_parquet(path_data_year)
 df_year.head()
 
+
 # COMMAND ----------
 
 len(df_year.year.unique())
@@ -248,3 +249,107 @@ df_year_2.plot.line(x='decade', y=['acousticness', 'danceability', 'energy',
 #Há alguma característica que se destaca em uma determinada década?
 #Existe alguma tendência geral nas características das músicas ao longo das décadas?
 #A década de lançamento de uma música influencia em suas características?       
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #Terceira parte -  perguntas
+# MAGIC * Quais são os 10 top artistas ?
+# MAGIC * Qual o gênero musical dos 10 top artistas ?
+# MAGIC * Quais sao os 10 top artistas ?
+# MAGIC * Quais artistas estão nos 10 top gêneros ?
+# MAGIC
+
+# COMMAND ----------
+
+# MAGIC %fs
+# MAGIC ls /
+
+# COMMAND ----------
+
+caminho_data_artist = "dbfs:/FileStore/dados/data_by_artist.csv"
+caminho_data_genres = "dbfs:/FileStore/dados/data_by_genres.csv"
+caminho_data_w_genres = "dbfs:/FileStore/dados/data_w_genres.csv"
+
+# COMMAND ----------
+
+df_data_artist = spark.read.csv(caminho_data_artist, inferSchema=True, header=True)
+df_data_genres = spark.read.csv(caminho_data_genres, inferSchema=True, header=True)
+df_data_w_genres = spark.read.csv(caminho_data_w_genres, inferSchema=True, header=True)
+
+# COMMAND ----------
+
+df_data_artist.printSchema()
+
+# COMMAND ----------
+
+df_data_genres.printSchema()
+
+# COMMAND ----------
+
+df_data_w_genres.printSchema()
+
+# COMMAND ----------
+
+df_data_artist = df_data_artist.pandas_api()
+df_data_genres = df_data_genres.pandas_api()
+df_data_w_genres = df_data_w_genres.pandas_api()
+
+# COMMAND ----------
+
+
+df_data_artist.to_parquet('/FileStore/dados_tratados/data_artist.parquet')
+df_data_genres.to_parquet('/FileStore/dados_tratados/data_genres.parquet')
+df_data_w_genres.to_parquet('/FileStore/dados_tratados/data_w_genres.parquet')
+
+# COMMAND ----------
+
+path_data_artist = '/FileStore/dados_tratados/data_artist.parquet'
+path_data_genres = '/FileStore/dados_tratados/data_genres.parquet'
+path_data_w_genres = '/FileStore/dados_tratados/data_w_genres.parquet'
+
+
+# COMMAND ----------
+
+df_data_artist = ps.read_parquet(path_data_artist)
+df_data_genres = ps.read_parquet(path_data_genres)
+df_data_w_genres = ps.read_parquet(path_data_w_genres)
+
+
+# COMMAND ----------
+
+df_data_artist['artists'] = df_data_artist.artists.str.replace("\"", "")
+
+# COMMAND ----------
+
+df_data_artist.head()
+
+# COMMAND ----------
+
+artistas_ordenados = df_data_artist.sort_values(by='count', ascending=False)
+artistas_ordenados.head()
+
+# COMMAND ----------
+
+top_artistas = artistas_ordenados.iloc[0:10]
+top_artistas
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+df_data_genres.head()
+
+# COMMAND ----------
+
+df_data_w_genres['artists'] = df_data_w_genres.artists.str.replace("\"", "")
+
+# COMMAND ----------
+
+df_data_w_genres.head()
