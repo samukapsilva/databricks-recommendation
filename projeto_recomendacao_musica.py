@@ -379,3 +379,22 @@ top_generos_2 =df_data_w_genres_2_ordenado.loc[1:11] # Seleciona os gêneros do 
 plot_title = 'Top 10 Gêneros'
 top_generos_2.plot.bar(x='qtd', y='genres', title=plot_title) # Plota um gráfico de barras para os gêneros do 2º ao 11º mais populares
 
+
+# COMMAND ----------
+
+# DBTITLE 1,Quais artistas estão nos 10 principais gêneros musicais?
+lista_genero =  top_generos_2.genres.unique().to_list()
+genero_artista = df_data_w_genres.loc[df_data_w_genres['genres'].isin (lista_genero)]
+genero_artista = genero_artista[['genres', 'artists' ]]
+display(genero_artista)
+
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Features até aqui:
+# MAGIC * Analisar os dados pelo ano de lançamento;
+# MAGIC * Agrupar os dados pela década;
+# MAGIC * Criar gráfico de barra para análise de quantidade de dados por década;
+# MAGIC * Analisar o impacto que o ano de lançamento tem nas outras features;
+# MAGIC * Responder questionamentos utilizando os dados.
