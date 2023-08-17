@@ -336,11 +336,14 @@ top_artistas
 
 # COMMAND ----------
 
-
+plot_title = 'Top 10 Artistas'
+top_artistas.plot.bar(x='count', y = 'artists', title = plot_title)
 
 # COMMAND ----------
 
-
+# DBTITLE 1,Genero musical dos top 10 artistas
+lista_artistas = top_artistas.artists.unique().to_list()
+lista_artistas
 
 # COMMAND ----------
 
@@ -353,3 +356,9 @@ df_data_w_genres['artists'] = df_data_w_genres.artists.str.replace("\"", "")
 # COMMAND ----------
 
 df_data_w_genres.head()
+
+# COMMAND ----------
+
+artistas_genero = df_data_w_genres.loc[df_data_w_genres['artists'].isin(lista_artistas)]
+artistas_genero = artistas_genero[['genres', 'artists']]
+display(artistas_genero)
