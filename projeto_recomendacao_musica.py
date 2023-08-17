@@ -203,4 +203,48 @@ df_year.plot.line(x='year', y='duration_ms')
 
 # COMMAND ----------
 
-df_year.plot.line(x='year', y='duration_ms')
+# DBTITLE 1,Analise de algumas caracteristicas
+df_year.plot.line(x='year', y=['acousticness', 'danceability', 'energy',
+       'instrumentalness', 'liveness', 'speechiness', 'valence'])
+
+# COMMAND ----------
+
+# DBTITLE 1,Como as características das músicas variam por década
+
+# função apply() do Pandas e uma função lambda para transformar o ano em uma string com a década correspondente. 
+# Add coluna "qtd" para contabilizar o número de músicas em cada década.
+
+df_year['decade'] = df_year['year'].apply(lambda row: f'{(row//10)*10}s')
+df_year['qtd'] = 1
+
+# COMMAND ----------
+
+# agregamos os dados das características das músicas utilizando o groupby por década e calculando a média de cada uma delas. 
+# Para a coluna "qtd", usamos a função sum(), pois queremos saber o total de músicas em cada década. 
+# Ordenamos o resultado pelo índice e redefinimos o índice do DataFrame.
+
+df_year_2 = df_year.groupby('decade').agg({
+    'acousticness': 'mean',
+    'danceability': 'mean',
+    'duration_ms': 'mean',
+    'energy': 'mean',
+    'instrumentalness': 'mean',
+    'liveness': 'mean',
+    'loudness': 'mean',
+    'speechiness': 'mean', 
+    'tempo': 'mean',
+    'valence': 'mean', 
+    'popularity': 'mean',
+    'qtd': 'sum' }).sort_index().reset_index()
+
+# COMMAND ----------
+
+#criamos uma visualização em linha para analisar como as características das músicas variam por década. 
+# Plotamos as colunas correspondentes às características, em relação à coluna "década".
+
+df_year_2.plot.line(x='decade', y=['acousticness', 'danceability', 'energy',
+       'instrumentalness', 'liveness', 'speechiness', 'valence'])
+
+#Há alguma característica que se destaca em uma determinada década?
+#Existe alguma tendência geral nas características das músicas ao longo das décadas?
+#A década de lançamento de uma música influencia em suas características?       
