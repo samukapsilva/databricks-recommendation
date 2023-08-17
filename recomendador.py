@@ -239,4 +239,10 @@ fig.show()
 
 # COMMAND ----------
 
-
+# MAGIC %md
+# MAGIC # Features still here:
+# MAGIC * Vetorizar seus dados com VectorAssembler;
+# MAGIC * Padronizar os dados com StandardScaler;
+# MAGIC * Reduzir a dimensão dos dados com PCA;
+# MAGIC * Criar clusters com K-Means;
+# MAGIC * Analisar os agrupamentos.
