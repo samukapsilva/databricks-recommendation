@@ -374,3 +374,203 @@ df_recomendada.show()
 # MAGIC * Extrair as componentes das músicas;
 # MAGIC * Calcular a distância entre as componentes das músicas;
 # MAGIC * Criar uma lista com as músicas mais próximas e de um mesmo cluster.
+
+# COMMAND ----------
+
+# DBTITLE 1,Integrando com o spotfy
+!pip install spotipy
+
+# COMMAND ----------
+
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
+
+# COMMAND ----------
+
+scope = "user-library-read playlist-modify-private"
+
+OAuth = SpotifyOAuth(
+        scope=scope,         
+        redirect_uri='http://localhost:5000/callback',
+        client_id = '25826c31177448379a2af73c9af4e25a',
+        client_secret = 'a5f209f9ce5d46caa75f145bcfb5e761')
+
+# COMMAND ----------
+
+client_credentials_manager = SpotifyClientCredentials(client_id = '25826c31177448379a2af73c9af4e25a',
+                                                      client_secret = 'a5f209f9ce5d46caa75f145bcfb5e761')
+
+sp = spotipy.Spotify(client_credentials_manager = client_credentials_manager)
+
+# COMMAND ----------
+
+id = projection_kmeans.filter(projection_kmeans.artists_song == nome_musica).select('id').collect()[0][0]
+id
+
+# COMMAND ----------
+
+sp.track(id)
+
+# COMMAND ----------
+
+df_recomendada.select('id')
+
+# COMMAND ----------
+
+df_recomendada.select('id').collect()
+
+# COMMAND ----------
+
+playlist_id = df_recomendada.select('id').collect()
+
+# COMMAND ----------
+
+playlist_track = []
+for id in playlist_id:
+    playlist_track.append(sp.track(id[0]))
+
+# COMMAND ----------
+
+#Creating the method that synthesizes all the logic
+def recomendador(nome_musica):
+    cluster = projection_kmeans.filter(projection_kmeans.artists_song == nome_musica).select('cluster_pca').collect()[0][0]
+    musicas_recomendadas = projection_kmeans.filter(projection_kmeans.cluster_pca == cluster).select('artists_song', 'id', 'pca_features')
+    componenetes_musica = musicas_recomendadas.filter(musicas_recomendadas.artists_song == nome_musica).select('pca_features').collect()[0][0]
+
+    def calcula_distance(value):
+        return euclidean(componenetes_musica, value)
+
+    #transformamos nossa função calcula_distance para em função Spark.
+    udf_calcula_distance = f.udf(calcula_distance, FloatType())
+
+    musicas_recomendadas_dist = musicas_recomendadas.withColumn('Dist', udf_calcula_distance('pca_features'))
+
+    recomendadas = spark.createDataFrame(musicas_recomendadas_dist.sort('Dist').take(10)).select(['artists_song', 'id', 'Dist'])
+
+    id = projection_kmeans.filter(projection_kmeans.artists_song == nome_musica).select('id').collect()[0][0]
+
+    playlist_id = df_recomendada.select('id').collect()
+
+    playlist_track = []
+
+    for id in playlist_id:
+        playlist_track.append(sp.track(id[0]))
+
+    return len(playlist_track)
+
+# COMMAND ----------
+
+recomendador('Taylor Swift - Blank Space')
+
+# COMMAND ----------
+
+!pip install scikit-image
+
+# COMMAND ----------
+
+import matplotlib.pyplot as plt
+from skimage import io
+
+nome_musica = 'Taylor Swift - Blank Space'
+
+id = projection_kmeans\
+          .filter(projection_kmeans.artists_song == nome_musica)\
+          .select('id').collect()[0][0]
+
+track = sp.track(id)
+
+url = track["album"]["images"][1]["url"]
+name = track["name"]
+
+image = io.imread(url) #le a imagem
+plt.imshow(image)
+plt.xlabel(name, fontsize = 10)
+plt.show()
+
+# COMMAND ----------
+
+import matplotlib.pyplot as plt
+from skimage import io
+
+def visualize_songs(name,url):
+
+    plt.figure(figsize=(15,10))
+    columns = 5
+    for i, u in enumerate(url):
+        ax = plt.subplot(len(url) // columns + 1, columns, i + 1)
+        image = io.imread(u)
+        plt.imshow(image)
+        ax.get_yaxis().set_visible(False)
+        plt.xticks(color = 'w', fontsize = 0.1)
+        plt.yticks(color = 'w', fontsize = 0.1)
+        plt.xlabel(name[i], fontsize = 10)
+        plt.tight_layout(h_pad=0.7, w_pad=0)
+        plt.subplots_adjust(wspace=None, hspace=None)
+        plt.grid(visible=None)
+    plt.show()
+
+# COMMAND ----------
+
+playlist_id = df_recomendada.select('id').collect()
+
+name = []
+url = []
+for i in playlist_id:
+    track = sp.track(i[0])
+    url.append(track["album"]["images"][1]["url"])
+    name.append(track["name"])
+
+# COMMAND ----------
+
+visualize_songs(name,url)
+
+# COMMAND ----------
+
+def recomendador(nome_musica):
+  # Calcula musicas recomendadas
+    cluster = projection_kmeans.filter(projection_kmeans.artists_song == nome_musica).select('cluster_pca').collect()[0][0]
+    musicas_recomendadas = projection_kmeans.filter(projection_kmeans.cluster_pca == cluster)\
+                                       .select('artists_song', 'id', 'pca_features')
+    componenetes_musica = musicas_recomendadas.filter(musicas_recomendadas.artists_song == nome_musica)\
+                                          .select('pca_features').collect()[0][0]
+
+    def calcula_distance(value):
+        return euclidean(componenetes_musica, value)
+
+    udf_calcula_distance = f.udf(calcula_distance, FloatType())
+
+    musicas_recomendadas_dist = musicas_recomendadas.withColumn('Dist', udf_calcula_distance('pca_features'))
+
+    recomendadas = spark.createDataFrame(musicas_recomendadas_dist.sort('Dist').take(10)).select(['artists_song', 'id', 'Dist'])
+
+  #Pegar informações da API
+
+    playlist_id = recomendadas.select('id').collect()
+
+    name = []
+    url = []
+    for i in playlist_id:
+        track = sp.track(i[0])
+        url.append(track["album"]["images"][1]["url"])
+        name.append(track["name"])
+
+  #Plotando capas 
+
+    plt.figure(figsize=(15,10))
+    columns = 5
+    for i, u in enumerate(url):
+        ax = plt.subplot(len(url) // columns + 1, columns, i + 1)
+        image = io.imread(u)
+        plt.imshow(image)
+        ax.get_yaxis().set_visible(False)
+        plt.xticks(color = 'w', fontsize = 0.1)
+        plt.yticks(color = 'w', fontsize = 0.1)
+        plt.xlabel(name[i], fontsize = 10)
+        plt.tight_layout(h_pad=0.7, w_pad=0)
+        plt.subplots_adjust(wspace=None, hspace=None)
+        plt.grid(visible=None)
+    plt.show()
+
+# COMMAND ----------
+
+recomendador('Taylor Swift - Blank Space')
