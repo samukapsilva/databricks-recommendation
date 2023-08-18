@@ -305,6 +305,10 @@ import pyspark.sql.functions as f
 
 # COMMAND ----------
 
+
+
+# COMMAND ----------
+
 def calcula_distance(value):
     return euclidean(componenetes_musica, value)
 
@@ -323,3 +327,50 @@ recomendadas.show(truncate=False)
 recomendadas = spark.createDataFrame(musicas_recomendadas_dist.sort('Dist').take(10)).select(['artists_song', 'id', 'Dist'])
 
 recomendadas.show()
+
+# COMMAND ----------
+
+# MAGIC %md 
+# MAGIC #Falhas detectadas no reromendador
+# MAGIC * Playlist somente com o nome do artista
+# MAGIC * codigo muito espaçado
+# MAGIC
+
+# COMMAND ----------
+
+musica_taylor_swift = 'Taylor Swift - Blank Space'
+
+# COMMAND ----------
+
+#Creating the method that synthesizes all the logic
+def recomendador(nome_musica):
+    cluster = projection_kmeans.filter(projection_kmeans.artists_song == nome_musica).select('cluster_pca').collect()[0][0]
+    musicas_recomendadas = projection_kmeans.filter(projection_kmeans.cluster_pca == cluster).select('artists_song', 'id', 'pca_features')
+    componenetes_musica = musicas_recomendadas.filter(musicas_recomendadas.artists_song == nome_musica).select('pca_features').collect()[0][0]
+
+    def calcula_distance(value):
+        return euclidean(componenetes_musica, value)
+
+    #transformamos nossa função calcula_distance para em função Spark.
+    udf_calcula_distance = f.udf(calcula_distance, FloatType())
+
+    musicas_recomendadas_dist = musicas_recomendadas.withColumn('Dist', udf_calcula_distance('pca_features'))
+
+    recomendadas = spark.createDataFrame(musicas_recomendadas_dist.sort('Dist').take(10)).select(['artists_song', 'id', 'Dist'])
+
+    return recomendadas
+
+
+# COMMAND ----------
+
+df_recomendada = recomendador(musica_taylor_swift)
+df_recomendada.show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # bullet points still here
+# MAGIC * Identificar o cluster;
+# MAGIC * Extrair as componentes das músicas;
+# MAGIC * Calcular a distância entre as componentes das músicas;
+# MAGIC * Criar uma lista com as músicas mais próximas e de um mesmo cluster.
