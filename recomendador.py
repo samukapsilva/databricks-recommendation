@@ -246,3 +246,80 @@ fig.show()
 # MAGIC * Reduzir a dimensão dos dados com PCA;
 # MAGIC * Criar clusters com K-Means;
 # MAGIC * Analisar os agrupamentos.
+
+# COMMAND ----------
+
+nome_musica = 'Taylor Swift - Blank Space'
+
+# COMMAND ----------
+
+type(projection_kmeans)
+
+# COMMAND ----------
+
+projection_kmeans = projection_kmeans
+
+# COMMAND ----------
+
+cluster = projection_kmeans.filter(projection_kmeans.artists_song == nome_musica).select('cluster_pca').collect()[0][0]
+cluster
+
+# COMMAND ----------
+
+musicas_recomendadas = projection_kmeans.filter(projection_kmeans.cluster_pca == cluster)\
+                                       .select('artists_song', 'id', 'pca_features')
+musicas_recomendadas.show()
+
+# COMMAND ----------
+
+#Para calcular as distâncias entre as músicas recomendadas e a nossa música de referência, precisamos obter as componentes da música de referência. 
+#No início, fizemos a extração do cluster dessa música de referência.
+#Agora, queremos buscar os valores que descrevem essa música
+
+# COMMAND ----------
+
+componenetes_musica = musicas_recomendadas \
+                        .filter(musicas_recomendadas.artists_song == nome_musica)\
+                        .select('pca_features').collect()[0][0]
+componenetes_musica                                                        
+
+# COMMAND ----------
+
+#Com esses dados, podemos calcular a distância entre a pca_features das outras músicas do cluster.
+#Existem várias maneiras de calcular a distância, pode ser a distância euclidiana, ou a distância de Manhattan
+#O cálculo pode ser simples, quando estivermos considerando, por exemplo, duas dimensões. 
+# Calcular a distância entre dois pontos no plano XY pode ser simples. Mas em uma dimensão de 6, a conta vai ser mais complexa. Para isso, usaremos a biblioteca SciPy
+
+# COMMAND ----------
+
+from scipy.spatial.distance import euclidean
+from pyspark.sql.types import FloatType
+import pyspark.sql.functions as f
+
+# COMMAND ----------
+
+#Precisamos percorrer toda a lista de músicas e calcular a distância para cada uma delas, salvando os resultados em uma coluna "distancia".
+#Então, os dados não estão concentrados em um só node, estão em diversos nodes. Precisaremos usar outras ferramentas para fazer esse apply.
+#Precisamos transformá-la em uma função compatível com o Spark
+
+
+# COMMAND ----------
+
+def calcula_distance(value):
+    return euclidean(componenetes_musica, value)
+
+#transformamos nossa função calcula_distance para em função Spark.
+udf_calcula_distance = f.udf(calcula_distance, FloatType())
+
+musicas_recomendadas_dist = musicas_recomendadas.withColumn('Dist', udf_calcula_distance('pca_features'))
+
+# COMMAND ----------
+
+recomendadas = spark.createDataFrame(musicas_recomendadas_dist.sort('Dist').take(10)).select(['artists_song', 'id', 'Dist'])
+recomendadas.show(truncate=False)
+
+# COMMAND ----------
+
+recomendadas = spark.createDataFrame(musicas_recomendadas_dist.sort('Dist').take(10)).select(['artists_song', 'id', 'Dist'])
+
+recomendadas.show()
